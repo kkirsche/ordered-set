@@ -49,7 +49,7 @@ def _is_atomic(obj: Any) -> bool:
     OrderedSet of strings. It shouldn't give the indexes of each individual
     character.
     """
-    return isinstance(obj, str) or isinstance(obj, tuple)
+    return isinstance(obj, (str, tuple))
 
 
 class OrderedSet(MutableSet[T], Sequence[T]):
@@ -120,10 +120,7 @@ class OrderedSet(MutableSet[T], Sequence[T]):
             return [self.items[i] for i in index]
         elif isinstance(index, slice) or hasattr(index, "__index__"):
             result = self.items[index]
-            if isinstance(result, list):
-                return self.__class__(result)
-            else:
-                return result
+            return self.__class__(result) if isinstance(result, list) else result
         else:
             raise TypeError("Don't know how to index an OrderedSet by %r" % index)
 
@@ -145,16 +142,7 @@ class OrderedSet(MutableSet[T], Sequence[T]):
     # We leave off type annotations, because the only code that should interact
     # with these is a generalized tool such as pickle.
     def __getstate__(self):
-        if len(self) == 0:
-            # In pickle, the state can't be an empty list.
-            # We need to return a truthy value, or else __setstate__ won't be run.
-            #
-            # This could have been done more gracefully by always putting the state
-            # in a tuple, but this way is backwards- and forwards- compatible with
-            # previous versions of OrderedSet.
-            return (None,)
-        else:
-            return list(self)
+        return (None, ) if len(self) == 0 else list(self)
 
     def __setstate__(self, state):
         if state == (None,):
@@ -215,9 +203,7 @@ class OrderedSet(MutableSet[T], Sequence[T]):
             for item in sequence:
                 item_index = self.add(item)
         except TypeError:
-            raise ValueError(
-                "Argument needs to be an iterable, got %s" % type(sequence)
-            )
+            raise ValueError(f"Argument needs to be an iterable, got {type(sequence)}")
         return item_index
 
     @overload
@@ -318,9 +304,11 @@ class OrderedSet(MutableSet[T], Sequence[T]):
         return reversed(self.items)
 
     def __repr__(self) -> str:
-        if not self:
-            return "%s()" % (self.__class__.__name__,)
-        return "%s(%r)" % (self.__class__.__name__, list(self))
+        return (
+            "%s(%r)" % (self.__class__.__name__, list(self))
+            if self
+            else f"{self.__class__.__name__}()"
+        )
 
     def __eq__(self, other: Any) -> bool:
         """
@@ -431,9 +419,7 @@ class OrderedSet(MutableSet[T], Sequence[T]):
             >>> OrderedSet([1, 2, 3]).issubset({1, 4, 3, 5})
             False
         """
-        if len(self) > len(other):  # Fast check for obvious cases
-            return False
-        return all(item in other for item in self)
+        return False if len(self) > len(other) else all(item in other for item in self)
 
     def issuperset(self, other: SetLike[T]) -> bool:
         """
@@ -447,9 +433,7 @@ class OrderedSet(MutableSet[T], Sequence[T]):
             >>> OrderedSet([1, 4, 3, 5]).issuperset({1, 2, 3})
             False
         """
-        if len(self) < len(other):  # Fast check for obvious cases
-            return False
-        return all(item in self for item in other)
+        return False if len(self) < len(other) else all(item in self for item in other)
 
     def symmetric_difference(self, other: SetLike[T]) -> "OrderedSet[T]":
         """
