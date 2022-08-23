@@ -270,12 +270,10 @@ def check_results_(results, datas, name):
     data and name are used to indicate what sort of tests is run.
     """
     if not allsame_(results):
-        raise AssertionError(
-            "Not all same {} for {} with datas={}".format(results, name, datas)
-        )
+        raise AssertionError(f"Not all same {results} for {name} with datas={datas}")
     for a, b in it.combinations(results, 2):
         if not isinstance(a, (bool, int)):
-            assert a is not b, name + " should all be different items"
+            assert a is not b, f"{name} should all be different items"
 
 
 def _operator_consistency_testdata():
